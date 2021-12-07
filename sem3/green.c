@@ -43,7 +43,7 @@ void enqueue(green_t **list, green_t *thread)
     }
 }
 
-void dequeue(green_t **list)
+green_t *dequeue(green_t **list)
 {
     if(*list == NULL)
     {
@@ -54,7 +54,7 @@ void dequeue(green_t **list)
         green_t *thread = *list;
         *list = (*list)->next;
         thread->next = NULL;
-        return NULL;
+        return thread;
     }
 }
 
@@ -64,7 +64,7 @@ void green_thread()
 
     void *result = (*this->fun)(this->arg);
     // place waiting (joining) thread in ready queue
-    enqueue(this->join);
+    enqueue(&ready_queue, this->join);
 
     // save result of execution
     this->retval = result;
@@ -72,7 +72,7 @@ void green_thread()
     // we're a zombie
     this->zombie = TRUE;
     // find the next thread to run
-
+    green_t *next = dequeue(&ready_queue);
     running = this->next;
     setcontext(next−>context);
 }
