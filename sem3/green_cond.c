@@ -143,3 +143,10 @@ int green_join (green_t *thread , void **res)
     sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
+
+//      # # # # # # # # # #
+//      # # # # # # # # # #
+//      #  3. Conditions  #
+//      # # # # # # # # # #
+//      # # # # # # # # # #
+
