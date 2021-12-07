@@ -150,3 +150,18 @@ int green_join (green_t *thread , void **res)
 //      # # # # # # # # # #
 //      # # # # # # # # # #
 
+//Initialize a green condition variable
+void green_cond_init(green_cond_t*)
+{
+
+}
+
+void green_cond_wait(green_cond_t*)
+{
+
+}
+
+void green_cond_signal(green_cond_t*)
+{
+    
+}
