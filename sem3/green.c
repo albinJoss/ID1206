@@ -29,7 +29,7 @@ void enqueue(green_t **list, green_t *thread)
 {
     if(*list == NULL)
     {
-        return;
+        *list = thread;
     }
     else
     {
@@ -120,17 +120,18 @@ int green_yield()
     return 0;
 }
 
-int green_join ( green_t * thread , void **res ) 
+int green_join (green_t *thread , void **res) 
 {
+    sigprocmask(SIG_BLOCK, &block, NULL);
     if(!thread->zombie) 
     {
-        green_t * susp = running;
+        green_t *susp = running;
         // add as joining thread
         thread->join = susp;
         //select the next thread for execution
         green_t *next = dequeue(&ready_queue); 
         running = next;
-        swapcontext( susp->context, next->context) ;
+        swapcontext(susp->context, next->context) ;
     }
     // collect result
     if(thread->retval != NULL)
@@ -139,35 +140,7 @@ int green_join ( green_t * thread , void **res )
     }
     // free context
     free(thread->context);
-
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
-#include <stdio.h>
-void *test(void *arg)
-{
-    int i = *(int *)arg;
-    int loop = 4;
-    printf("Before while\n");
-    while (loop > 0)
-    {
-        printf("thread %d : %d\n", i, loop);
-        --loop;
-        green_yield();
-    }
-}
-int main()
-{
-    printf("HI\n");
-    green_t g0, g1;
-    int a0 = 0;
-    int a1 = 1;
-    printf("set variables\n");
-    green_create(&g0, test, &a0);
-    green_create(&g1, test, &a1);
-    printf("created\n");
-    green_join(&g0, NULL);
-    green_join(&g1, NULL);
-    printf("done\n");
-    return 0;
-}
