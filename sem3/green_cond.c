@@ -151,17 +151,45 @@ int green_join (green_t *thread , void **res)
 //      # # # # # # # # # #
 
 //Initialize a green condition variable
-void green_cond_init(green_cond_t*)
+void green_cond_init(green_cond_t *cond)
 {
-
+    sigprocmask(SIG_BLOCK, &block, NULL);
+    cond->queue = NULL;
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
-void green_cond_wait(green_cond_t*)
+//Suspend the current thread on the condition
+void green_cond_wait(green_cond_t *cond)
 {
+    sigprocmask(SIG_BLOCK, &block, NULL);
 
+    green_t *susp = running;
+    assert(susp != NULL);
+
+    enqueue(&cond->queue, susp);
+
+    green_t *next = dequeue(&ready_queue);
+    assert(next != NULL);
+
+    running = next;
+
+    swapcontext(susp->context, next->context);
+
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
-void green_cond_signal(green_cond_t*)
+//move the first suspended variable to the ready queue
+void green_cond_signal(green_cond_t *cond)
 {
-    
+    sigprocmask(SIG_BLOCK, &block, NULL);
+
+    if(cond->queue == NULL)
+    {
+        return;
+    }
+
+    green_t *thread = dequeue(&cond->queue);
+    enqueue(&ready_queue, thread);
+
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }

@@ -1,5 +1,6 @@
 #include <ucontext.h>
 
+
 typedef struct green_t 
 {
     ucontext_t *context;
@@ -10,6 +11,11 @@ typedef struct green_t
     void *retval;
     int zombie;
 } green_t;
+
+typedef struct green_cond_t
+{
+    green_t *queue;
+} green_cond_t;
 
 
 int green_create(green_t *thread, void *(*fun)(void*), void *arg);
