@@ -115,5 +115,7 @@ int green_yield()
     green_t *next = dequeue(&ready_queue);
 
     running = next;
+    //swap context
     swapcontext(susp->context, next->context);
+    return 0;
 }
