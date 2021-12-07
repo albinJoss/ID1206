@@ -73,8 +73,9 @@ void green_thread()
     this->zombie = TRUE;
     // find the next thread to run
     green_t *next = dequeue(&ready_queue);
-    running = this->next;
-    setcontext(next−>context);
+
+    running = next;
+    setcontext(next->context);
 }
 
 
@@ -99,7 +100,7 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
 
     // add new to the ready queue
     //sigprocmask(SIG_BLOCK, &block, NULL);
-    enqueue(new);
+    enqueue(&ready_queue, new);
     //sigprocmask(SIG_UNBLOCK, &block, NULL);
 
     return 0;
@@ -109,9 +110,10 @@ int green_yield()
 {
     green_t *susp = running;
     // add susp to ready queue
-
+    enqueue(&ready_queue, susp);
     // select the next thread for execution
+    green_t *next = dequeue(&ready_queue);
 
     running = next;
-    swapcontext(susp->context, next->conext);
+    swapcontext(susp->context, next->context);
 }
