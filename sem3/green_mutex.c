@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <stdio.h>
 #include "green.h"
 
 #define FALSE 0
@@ -248,7 +249,7 @@ int green_mutex_init(green_mutex_t *mutex)
 {
     sigprocmask(SIG_BLOCK, &block, NULL);
 
-    //initialize fields
+    // initialize fields
     mutex->taken = FALSE;
     mutex->suspthreads = NULL;
 
@@ -257,16 +258,16 @@ int green_mutex_init(green_mutex_t *mutex)
 
 int green_mutex_lock(green_mutex_t *mutex)
 {
-    //block timer interupt
+    // block timer interupt
     sigprocmask(SIG_BLOCK, &block, NULL);
 
     green_t *susp = running;
 
-    if(mutex->taken)
+    if (mutex->taken)
     {
-        //suspend the current thread
+        // suspend the current thread
         enqueue(&mutex->suspthreads, susp);
-        //find the next thread
+        // find the next thread
         green_t *next = dequeue(&ready_queue);
         assert(next != NULL);
 
@@ -275,16 +276,33 @@ int green_mutex_lock(green_mutex_t *mutex)
     }
     else
     {
-        //take the lock
+        // take the lock
         mutex->taken = TRUE;
     }
-    //unblock
+    // unblock
     sigprocmask(SIG_UNBLOCK, &block, NULL);
-    
+
     return 0;
 }
 
 int green_mutex_unlock(green_mutex_t *mutex)
 {
+    // block timer interrupt
+    sigprocmask(SIG_BLOCK, &block, NULL);
 
+    if (mutex->suspthreads != NULL)
+    {
+        // move suspended thread to ready queue
+        green_t *suspthreads = dequeue(&mutex->suspthreads);
+        enqueue(&ready_queue, suspthreads);
+    }
+    else
+    {
+        // release lock aka hard reset
+        mutex->taken = FALSE;
+        mutex->suspthreads = NULL;
+    }
+    // unblock
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
+    return 0;
 }
