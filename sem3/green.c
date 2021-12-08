@@ -1,7 +1,6 @@
 #include <ucontext.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <signal.h>
 #include "green.h"
 
 #define FALSE 0
@@ -16,7 +15,6 @@ static green_t *running = &main_green;
 
 struct green_t *ready_queue = NULL;
 
-static sigset_t block;
 
 static void init() __attribute__((constructor));
 
@@ -99,9 +97,8 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
     new->zombie = FALSE;
 
     // add new to the ready queue
-    sigprocmask(SIG_BLOCK, &block, NULL);
+   
     enqueue(&ready_queue, new);
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
 
     return 0;
 }
@@ -122,7 +119,6 @@ int green_yield()
 
 int green_join (green_t *thread , void **res) 
 {
-    sigprocmask(SIG_BLOCK, &block, NULL);
     if(!thread->zombie) 
     {
         green_t *susp = running;
@@ -140,6 +136,5 @@ int green_join (green_t *thread , void **res)
     }
     // free context
     free(thread->context);
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
