@@ -298,7 +298,7 @@ int green_mutex_unlock(green_mutex_t *mutex)
     }
     else
     {
-        //release lock aka hard reset
+        // release lock aka hard reset
         mutex->taken = FALSE;
         mutex->suspthreads = NULL;
     }

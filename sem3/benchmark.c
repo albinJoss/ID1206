@@ -73,8 +73,6 @@ void *ptest(void *arg)
     pthread_exit(0);
 }
 
-
-
 int main()
 {
     pthreads_init();
@@ -84,17 +82,15 @@ int main()
     CPU_SET(1, &cpuset);
     FILE *fptr;
     fptr = fopen("threads.txt", "w+");
-    
+
     // vår implementation
     for (int i = 1; i <= 10000; i++)
     {
+        atomic_loop = i;
         fprintf(fptr, "%d; ", atomic_loop);
-        int loopc = loop;
-        green_t g0, g1, g2, g3;
+        green_t g0, g1;
         int a0 = 0;
         int a1 = 1;
-        int a2 = 2;
-        int a3 = 3;
         unsigned long long start = cpumSecond();
         green_create(&g0, test, &a0);
         green_create(&g1, test, &a1);
@@ -103,8 +99,7 @@ int main()
 
         unsigned long long exectime = cpumSecond() - start;
 
-
-        loop = loopc;
+        atomic_loop = i;
 
         // ptthread
         pthread_t ptt0 = pthread_self();
@@ -113,8 +108,6 @@ int main()
         pthread_setaffinity_np(ptt1, sizeof(cpuset), &cpuset);
         int pt0 = 0;
         int pt1 = 1;
-        int pt2 = 2;
-        int pt3 = 3;
         unsigned long long ptstart = cpumSecond();
         pthread_create(&ptt0, NULL, ptest, &pt0);
         pthread_create(&ptt1, NULL, ptest, &pt1);
@@ -122,8 +115,6 @@ int main()
         pthread_join(ptt1, NULL);
         unsigned long long ptexectime = cpumSecond() - ptstart;
         fprintf(fptr, "%llu; %llu\n", exectime, ptexectime);
-
-        atomic_loop = i;
     }
     fflush(fptr);
     fclose(fptr);

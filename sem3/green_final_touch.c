@@ -181,7 +181,6 @@ void green_cond_init(green_cond_t *cond)
     sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
-
 // move the first suspended variable to the ready queue
 void green_cond_signal(green_cond_t *cond)
 {
@@ -306,9 +305,9 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
         // release the lock if we have a mutex
         mutex->taken = FALSE;
         green_t *susp = dequeue(&mutex->suspthreads);
-        //move suspended thread to the ready queue
-        enqueue(&ready_queue, susp); 
-        mutex->suspthreads = NULL;  
+        // move suspended thread to the ready queue
+        enqueue(&ready_queue, susp);
+        mutex->suspthreads = NULL;
     }
 
     green_t *next = dequeue(&ready_queue);
@@ -317,12 +316,12 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
     running = next;
     swapcontext(susp->context, next->context);
 
-    if(mutex != NULL)
+    if (mutex != NULL)
     {
-        //try to take the lock
-        if(mutex->taken)
+        // try to take the lock
+        if (mutex->taken)
         {
-            //Bad luck, suspend
+            // Bad luck, suspend
             green_t *susp = running;
             enqueue(&cond->queue, susp);
 
@@ -332,12 +331,11 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
         }
         else
         {
-            //Take the lock
+            // Take the lock
             mutex->taken = TRUE;
         }
     }
-    //Unblock
+    // Unblock
     sigprocmask(SIG_UNBLOCK, &block, NULL);
     return;
 }
-

@@ -36,4 +36,3 @@ void timer_handler(int sig);
 int green_mutex_init(green_mutex_t *mutex);
 int green_mutex_lock(green_mutex_t *mutex);
 int green_mutex_unlock(green_mutex_t *mutex);
-

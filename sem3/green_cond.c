@@ -22,29 +22,28 @@ void init()
     getcontext(&main_cntx);
 }
 
-//Put an item at the end of the queue
+// Put an item at the end of the queue
 void enqueue(green_t **list, green_t *thread)
 {
-    if(*list == NULL)
+    if (*list == NULL)
     {
         *list = thread;
     }
     else
     {
         green_t *susp = *list;
-        while(susp->next != NULL)
+        while (susp->next != NULL)
         {
             susp = susp->next;
-
         }
         susp->next = thread;
     }
 }
 
-//Take an item out of the queue that is provided
+// Take an item out of the queue that is provided
 green_t *dequeue(green_t **list)
 {
-    if(*list == NULL)
+    if (*list == NULL)
     {
         return NULL;
     }
@@ -77,10 +76,9 @@ void green_thread()
     setcontext(next->context);
 }
 
-
 int green_create(green_t *new, void *(*fun)(void *), void *arg)
 {
-    //Set up the new context and stack for the new thread.
+    // Set up the new context and stack for the new thread.
     ucontext_t *cntx = (ucontext_t *)malloc(sizeof(ucontext_t));
     getcontext(cntx);
 
@@ -90,7 +88,7 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
     cntx->uc_stack.ss_size = STACK_SIZE;
     makecontext(cntx, green_thread, 0);
 
-    //Set up the new thread.
+    // Set up the new thread.
     new->context = cntx;
     new->fun = fun;
     new->arg = arg;
@@ -100,9 +98,8 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
     new->zombie = FALSE;
 
     // add new to the ready queue
-    
+
     enqueue(&ready_queue, new);
-    
 
     return 0;
 }
@@ -116,32 +113,32 @@ int green_yield()
     green_t *next = dequeue(&ready_queue);
 
     running = next;
-    //swap context
+    // swap context
     swapcontext(susp->context, next->context);
     return 0;
 }
 
-int green_join (green_t *thread , void **res) 
+int green_join(green_t *thread, void **res)
 {
-    
-    if(!thread->zombie) 
+
+    if (!thread->zombie)
     {
         green_t *susp = running;
         // add as joining thread
         thread->join = susp;
-        //select the next thread for execution
-        green_t *next = dequeue(&ready_queue); 
+        // select the next thread for execution
+        green_t *next = dequeue(&ready_queue);
         running = next;
-        swapcontext(susp->context, next->context) ;
+        swapcontext(susp->context, next->context);
     }
     // collect result
-    if(thread->retval != NULL && res != NULL)
+    if (thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }
     // free context
     free(thread->context);
-    
+
     return 0;
 }
 
@@ -151,46 +148,44 @@ int green_join (green_t *thread , void **res)
 //      # # # # # # # # # #
 //      # # # # # # # # # #
 
-//Initialize a green condition variable
+// Initialize a green condition variable
 void green_cond_init(green_cond_t *cond)
 {
     cond->queue = NULL;
 }
 
-//Suspend the current thread on the condition
+// Suspend the current thread on the condition
 void green_cond_wait(green_cond_t *cond)
 {
 
-    //Copying the process that is currently running
+    // Copying the process that is currently running
     green_t *susp = running;
     assert(susp != NULL);
 
-    //Adding the current process to the list of currently suspended processes
+    // Adding the current process to the list of currently suspended processes
     enqueue(&cond->queue, susp);
 
-    //Preparing the next thread to be used.
+    // Preparing the next thread to be used.
     green_t *next = dequeue(&ready_queue);
     assert(next != NULL);
 
-    //Setting the next thread to be used as the running thread.
+    // Setting the next thread to be used as the running thread.
     running = next;
 
-    //Swapping the context. This will save the current state and continue execution on next->context.
+    // Swapping the context. This will save the current state and continue execution on next->context.
     swapcontext(susp->context, next->context);
-
-    
 }
 
-//move the first suspended variable to the ready queue
+// move the first suspended variable to the ready queue
 void green_cond_signal(green_cond_t *cond)
 {
-    
-    //Do not do anything if the queue is empty
-    if(cond->queue == NULL)
+
+    // Do not do anything if the queue is empty
+    if (cond->queue == NULL)
     {
         return;
     }
-    //returning a previously suspended thread and then queueing it up to be used again.
+    // returning a previously suspended thread and then queueing it up to be used again.
     green_t *thread = dequeue(&cond->queue);
     enqueue(&ready_queue, thread);
 }

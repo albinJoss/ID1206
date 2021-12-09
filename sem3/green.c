@@ -15,7 +15,6 @@ static green_t *running = &main_green;
 
 struct green_t *ready_queue = NULL;
 
-
 static void init() __attribute__((constructor));
 
 void init()
@@ -25,17 +24,16 @@ void init()
 
 void enqueue(green_t **list, green_t *thread)
 {
-    if(*list == NULL)
+    if (*list == NULL)
     {
         *list = thread;
     }
     else
     {
         green_t *susp = *list;
-        while(susp->next != NULL)
+        while (susp->next != NULL)
         {
             susp = susp->next;
-
         }
         susp->next = thread;
     }
@@ -43,7 +41,7 @@ void enqueue(green_t **list, green_t *thread)
 
 green_t *dequeue(green_t **list)
 {
-    if(*list == NULL)
+    if (*list == NULL)
     {
         return NULL;
     }
@@ -76,7 +74,6 @@ void green_thread()
     setcontext(next->context);
 }
 
-
 int green_create(green_t *new, void *(*fun)(void *), void *arg)
 {
     ucontext_t *cntx = (ucontext_t *)malloc(sizeof(ucontext_t));
@@ -97,7 +94,7 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
     new->zombie = FALSE;
 
     // add new to the ready queue
-   
+
     enqueue(&ready_queue, new);
 
     return 0;
@@ -112,25 +109,25 @@ int green_yield()
     green_t *next = dequeue(&ready_queue);
 
     running = next;
-    //swap context
+    // swap context
     swapcontext(susp->context, next->context);
     return 0;
 }
 
-int green_join (green_t *thread , void **res) 
+int green_join(green_t *thread, void **res)
 {
-    if(!thread->zombie) 
+    if (!thread->zombie)
     {
         green_t *susp = running;
         // add as joining thread
         thread->join = susp;
-        //select the next thread for execution
-        green_t *next = dequeue(&ready_queue); 
+        // select the next thread for execution
+        green_t *next = dequeue(&ready_queue);
         running = next;
-        swapcontext(susp->context, next->context) ;
+        swapcontext(susp->context, next->context);
     }
     // collect result
-    if(thread->retval != NULL && res != NULL)
+    if (thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }
