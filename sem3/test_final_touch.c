@@ -2,12 +2,12 @@
 #include <stdio.h>
 
 int flag = 0;
+int loop = 14;
 green_cond_t cond;
 green_mutex_t mutex;
 void *test(void *arg)
 {
     int id = *(int *)arg;
-    int loop = 14;
     while (loop > 0)
     {
         green_mutex_lock(&mutex);
@@ -21,7 +21,7 @@ void *test(void *arg)
         flag = (id + 1) % 2;
         green_cond_signal(&cond);
         green_mutex_unlock(&mutex);
-        loop--;
+        --loop;
     }
 }
 

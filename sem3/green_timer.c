@@ -157,7 +157,7 @@ int green_join (green_t *thread , void **res)
         swapcontext(susp->context, next->context) ;
     }
     // collect result
-    if(thread->retval != NULL)
+    if(thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }

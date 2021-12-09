@@ -135,7 +135,7 @@ int green_join (green_t *thread , void **res)
         swapcontext(susp->context, next->context) ;
     }
     // collect result
-    if(thread->retval != NULL)
+    if(thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }
@@ -184,6 +184,7 @@ void green_cond_wait(green_cond_t *cond)
 //move the first suspended variable to the ready queue
 void green_cond_signal(green_cond_t *cond)
 {
+    
     //Do not do anything if the queue is empty
     if(cond->queue == NULL)
     {

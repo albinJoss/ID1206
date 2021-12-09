@@ -1,4 +1,5 @@
 #include <ucontext.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <signal.h>
@@ -156,7 +157,7 @@ int green_join(green_t *thread, void **res)
         swapcontext(susp->context, next->context);
     }
     // collect result
-    if (thread->retval != NULL)
+    if (thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }
@@ -304,8 +305,9 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
     {
         // release the lock if we have a mutex
         mutex->taken = FALSE;
+        green_t *susp = dequeue(&mutex->suspthreads);
         //move suspended thread to the ready queue
-        enqueue(&cond->queue, susp); 
+        enqueue(&ready_queue, susp); 
         mutex->suspthreads = NULL;  
     }
 
@@ -336,5 +338,6 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
     }
     //Unblock
     sigprocmask(SIG_UNBLOCK, &block, NULL);
-    return 0;
+    return;
 }
+

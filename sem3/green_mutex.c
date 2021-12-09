@@ -156,7 +156,7 @@ int green_join(green_t *thread, void **res)
         swapcontext(susp->context, next->context);
     }
     // collect result
-    if (thread->retval != NULL)
+    if (thread->retval != NULL && res != NULL)
     {
         *res = thread->retval;
     }
@@ -298,7 +298,7 @@ int green_mutex_unlock(green_mutex_t *mutex)
     }
     else
     {
-        // release lock aka hard reset
+        //release lock aka hard reset
         mutex->taken = FALSE;
         mutex->suspthreads = NULL;
     }
