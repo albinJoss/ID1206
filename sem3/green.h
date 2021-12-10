@@ -23,6 +23,13 @@ typedef struct green_mutex_t
     struct green_t *suspthreads;
 } green_mutex_t;
 
+typedef struct green_semaphore_t
+{
+    int value;
+    green_cond_t cond;
+    green_mutex_t mutex;
+} green_semaphore_t;
+
 int green_create(green_t *thread, void *(*fun)(void *), void *arg);
 int green_yield();
 int green_join(green_t *thread, void **val);
