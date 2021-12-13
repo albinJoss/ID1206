@@ -34,7 +34,7 @@ void produce()
         while (buffer == 1) // wait for consumer before producing more
             green_cond_wait(&empty, &mutex);
         buffer = 1;
-        //printf("Produced!\n");
+
         green_cond_signal(&full);
         green_mutex_unlock(&mutex);
     }
@@ -48,35 +48,35 @@ void consume()
         while (buffer == 0) // wait for producer before consuming
             green_cond_wait(&full, &mutex);
         buffer = 0;
-        //printf("Consumed!\n");
+
         green_cond_signal(&empty);
         green_mutex_unlock(&mutex);
     }
 }
 
 void produceP()
-{ // heahae
+{ 
     for (int i = 0; i < productions / (numThreads / 2); i++)
     {
         pthread_mutex_lock(&mutexP);
         while (buffer == 1) // wait for consumer before producing more
             pthread_cond_wait(&emptyP, &mutexP);
         buffer = 1;
-        //printf("Produced!\n");
+
         pthread_cond_signal(&fullP);
         pthread_mutex_unlock(&mutexP);
     }
 }
 
 void consumeP()
-{ // heahae
+{ 
     for (int i = 0; i < productions / (numThreads / 2); i++)
     {
         pthread_mutex_lock(&mutexP);
         while (buffer == 0) // wait for producer before consuming
             pthread_cond_wait(&fullP, &mutexP);
         buffer = 0;
-        //printf("Consumed!\n");
+
         pthread_cond_signal(&emptyP);
         pthread_mutex_unlock(&mutexP);
     }
@@ -87,12 +87,12 @@ void *testConsumerProducer(void *arg)
     int id = *(int *)arg;
     if (id % 2 == 0)
     { // producer
-        //printf("Producing...\n");
+
         produce();
     }
     else
     { // consumer
-        //printf("Consuming...\n");
+
         consume();
     }
 }
@@ -102,12 +102,12 @@ void *testConsumerProducerP(void *arg)
     int id = *(int *)arg;
     if (id % 2 == 0)
     { // producer
-        //printf("Producing...\n");
+
         produceP();
     }
     else
     { // consumer
-        //printf("Consuming...\n");
+
         consumeP();
     }
 }
@@ -121,11 +121,7 @@ void testGreen(int *args)
     {
         green_create(&threads[i], testConsumerProducer, &args[i]);
     }
-    /*
-  green_create(&threads[0], test, &args[0]);
-  for(int i = 1; i < numThreads; i++)
-    green_create(&threads[i], testJoin, &threads[0]);
-  */
+
     for (int i = 0; i < numThreads; i++)
     {
         green_join(&threads[i], NULL);
