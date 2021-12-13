@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <ucontext.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,11 +87,15 @@ void green_thread()
 
     void *result = (*this->fun)(this->arg);
     // place waiting (joining) thread in ready queue
-    enqueue(&ready_queue, this->join);
-
+    if (this->join != NULL)
+    {
+        enqueue(&ready_queue, this->join);
+    }
     // save result of execution
     this->retval = result;
 
+    //free the space
+    free(this->context->uc_stack.ss_sp);
     // we're a zombie
     this->zombie = TRUE;
     // find the next thread to run
@@ -323,7 +328,7 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
         {
             // Bad luck, suspend
             green_t *susp = running;
-            enqueue(&cond->queue, susp);
+            enqueue(&mutex->suspthreads, susp);
 
             green_t *next = dequeue(&ready_queue);
             running = next;
@@ -339,3 +344,4 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
     sigprocmask(SIG_UNBLOCK, &block, NULL);
     return;
 }
+

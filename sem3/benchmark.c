@@ -1,18 +1,20 @@
 #define _GNU_SOURCE
-#include "green.h"
 #include <stdio.h>
-#include <sys/time.h>
+#include <time.h>
 #include <pthread.h>
-#include <stdatomic.h>
+#include <sys/time.h>
+#include <sched.h>
+#include "green.h"
 
-int flag = 0;
-int loop = 0;
-volatile atomic_int atomic_loop = 0;
+
 green_cond_t cond;
 green_mutex_t mutex;
+pthread_cond_t emptyP, fullP;
+pthread_mutex_t mutexP;
+int numThreads = 2;
+unsigned long long processTimeGreen = 0, processTimeP = 0;
 
-pthread_cond_t pcond;
-pthread_mutex_t pmutex;
+int counter = 0;
 
 unsigned long long cpumSecond()
 {
@@ -21,102 +23,176 @@ unsigned long long cpumSecond()
     return ((double)tp.tv_sec * 1000000 + (double)tp.tv_usec);
 }
 
-void pthreads_init()
+int buffer;
+int productions;
+green_cond_t full, empty;
+void produce()
 {
-    atomic_init(&atomic_loop, 0);
-    pthread_mutex_init(&pmutex, NULL);
-    pthread_cond_init(&pcond, NULL);
-}
-
-void atomic_add()
-{
-    atomic_fetch_add_explicit(&atomic_loop, 1, memory_order_relaxed);
-}
-
-void atomic_sub()
-{
-    atomic_fetch_sub_explicit(&atomic_loop, 1, memory_order_relaxed);
-}
-
-void *test(void *arg)
-{
-    int id = *(int *)arg;
-    while (loop > 0)
+    for (int i = 0; i < productions / (numThreads / 2); i++)
     {
         green_mutex_lock(&mutex);
-        while (flag != id)
-        {
-            green_cond_wait(&cond, &mutex);
-        }
-        flag = (id + 1) % 2;
-        green_cond_signal(&cond);
+        while (buffer == 1) // wait for consumer before producing more
+            green_cond_wait(&empty, &mutex);
+        buffer = 1;
+        //printf("Produced!\n");
+        green_cond_signal(&full);
         green_mutex_unlock(&mutex);
-        atomic_sub;
     }
 }
 
-void *ptest(void *arg)
+void consume()
+{
+    for (int i = 0; i < productions / (numThreads / 2); i++)
+    {
+        green_mutex_lock(&mutex);
+        while (buffer == 0) // wait for producer before consuming
+            green_cond_wait(&full, &mutex);
+        buffer = 0;
+        //printf("Consumed!\n");
+        green_cond_signal(&empty);
+        green_mutex_unlock(&mutex);
+    }
+}
+
+void produceP()
+{ // heahae
+    for (int i = 0; i < productions / (numThreads / 2); i++)
+    {
+        pthread_mutex_lock(&mutexP);
+        while (buffer == 1) // wait for consumer before producing more
+            pthread_cond_wait(&emptyP, &mutexP);
+        buffer = 1;
+        //printf("Produced!\n");
+        pthread_cond_signal(&fullP);
+        pthread_mutex_unlock(&mutexP);
+    }
+}
+
+void consumeP()
+{ // heahae
+    for (int i = 0; i < productions / (numThreads / 2); i++)
+    {
+        pthread_mutex_lock(&mutexP);
+        while (buffer == 0) // wait for producer before consuming
+            pthread_cond_wait(&fullP, &mutexP);
+        buffer = 0;
+        //printf("Consumed!\n");
+        pthread_cond_signal(&emptyP);
+        pthread_mutex_unlock(&mutexP);
+    }
+}
+
+void *testConsumerProducer(void *arg)
 {
     int id = *(int *)arg;
-    while (loop > 0)
-    {
-        pthread_mutex_lock(&pmutex);
-        while (flag != id)
-        {
-            pthread_cond_wait(&pcond, &pmutex);
-        }
-        flag = (id + 1) % 2;
-        pthread_cond_signal(&pcond);
-        pthread_mutex_unlock(&pmutex);
-        atomic_sub();
+    if (id % 2 == 0)
+    { // producer
+        //printf("Producing...\n");
+        produce();
     }
-    pthread_exit(0);
+    else
+    { // consumer
+        //printf("Consuming...\n");
+        consume();
+    }
+}
+
+void *testConsumerProducerP(void *arg)
+{
+    int id = *(int *)arg;
+    if (id % 2 == 0)
+    { // producer
+        //printf("Producing...\n");
+        produceP();
+    }
+    else
+    { // consumer
+        //printf("Consuming...\n");
+        consumeP();
+    }
+}
+
+void testGreen(int *args)
+{
+    green_t threads[numThreads];
+
+    unsigned long long start = cpumSecond();
+    for (int i = 0; i < numThreads; i++)
+    {
+        green_create(&threads[i], testConsumerProducer, &args[i]);
+    }
+    /*
+  green_create(&threads[0], test, &args[0]);
+  for(int i = 1; i < numThreads; i++)
+    green_create(&threads[i], testJoin, &threads[0]);
+  */
+    for (int i = 0; i < numThreads; i++)
+    {
+        green_join(&threads[i], NULL);
+    }
+    processTimeGreen = cpumSecond() - start;
+}
+
+void testPthread(int *args)
+{
+    pthread_t threads[numThreads];
+    cpu_set_t cpuset;
+
+    CPU_ZERO(&cpuset);
+    for (int i = 0; i < numThreads; ++i)
+    {
+        CPU_SET(i, &cpuset);
+    }
+
+    for (int i = 0; i < numThreads; ++i)
+    {
+        threads[i] = pthread_self();
+        pthread_setaffinity_np(threads[i], sizeof(cpuset), &cpuset);
+    }
+
+    unsigned long long start = cpumSecond();
+    for (int i = 0; i < numThreads; i++)
+    {
+        pthread_create(&threads[i], NULL, testConsumerProducerP, &args[i]);
+    }
+    for (int i = 0; i < numThreads; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
+    processTimeP = cpumSecond() - start;
 }
 
 int main()
 {
-    pthreads_init();
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(0, &cpuset);
-    CPU_SET(1, &cpuset);
-    FILE *fptr;
-    fptr = fopen("threads.txt", "w+");
+    green_cond_init(&cond);
+    green_cond_init(&full);
+    green_cond_init(&empty);
+    green_mutex_init(&mutex);
 
-    // vår implementation
-    for (int i = 1; i <= 10000; i++)
+    pthread_cond_init(&fullP, NULL);
+    pthread_cond_init(&emptyP, NULL);
+    pthread_mutex_init(&mutexP, NULL);
+    printf("#Benchmark, creating and producing/consuming with threads!\n#\n#\n");
+    printf("#{#productions\ttimeGreen(ms)\ttimePthreads(ms)\n");
+    int numRuns = 50;
+    for (int run = 1; run <= numRuns; run++)
     {
-        atomic_loop = i;
-        fprintf(fptr, "%d; ", atomic_loop);
-        green_t g0, g1;
-        int a0 = 0;
-        int a1 = 1;
-        unsigned long long start = cpumSecond();
-        green_create(&g0, test, &a0);
-        green_create(&g1, test, &a1);
-        green_join(&g0, NULL);
-        green_join(&g1, NULL);
+        
+        buffer = 0;
+        productions = 1000 * run; // Must be multiple of 2
 
-        unsigned long long exectime = cpumSecond() - start;
+        int args[numThreads];
+        for (int i = 0; i < numThreads; i++)
+            args[i] = i;
 
-        atomic_loop = i;
+        testGreen(args);
 
-        // ptthread
-        pthread_t ptt0 = pthread_self();
-        pthread_t ptt1 = pthread_self();
-        pthread_setaffinity_np(ptt0, sizeof(cpuset), &cpuset);
-        pthread_setaffinity_np(ptt1, sizeof(cpuset), &cpuset);
-        int pt0 = 0;
-        int pt1 = 1;
-        unsigned long long ptstart = cpumSecond();
-        pthread_create(&ptt0, NULL, ptest, &pt0);
-        pthread_create(&ptt1, NULL, ptest, &pt1);
-        pthread_join(ptt0, NULL);
-        pthread_join(ptt1, NULL);
-        unsigned long long ptexectime = cpumSecond() - ptstart;
-        fprintf(fptr, "%llu; %llu\n", exectime, ptexectime);
+       
+
+        testPthread(args);
+        printf("\t%d\t\t%llu\t\t%llu\n", productions, processTimeGreen, processTimeP);
     }
-    fflush(fptr);
-    fclose(fptr);
+    
+
     return 0;
 }

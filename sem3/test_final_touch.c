@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int flag = 0;
-int loop = 14;
+int loop = 4;
 green_cond_t cond;
 green_mutex_t mutex;
 void *test(void *arg)
