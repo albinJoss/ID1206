@@ -135,7 +135,7 @@ void testPthread(int *args)
     cpu_set_t cpuset;
 
     CPU_ZERO(&cpuset);
-    for (int i = 0; i < numThreads; ++i)
+    for (int i = 0; i < 1; ++i)        //Change this to change how many physical threads that pthreads can use.
     {
         CPU_SET(i, &cpuset);
     }
@@ -186,7 +186,7 @@ int main()
        
 
         testPthread(args);
-        printf("\t%d\t\t%llu\t\t%llu\n", productions, processTimeGreen, processTimeP);
+        printf("\t%d;\t\t%llu;\t\t%llu\n", productions, processTimeGreen, processTimeP);
     }
     
 

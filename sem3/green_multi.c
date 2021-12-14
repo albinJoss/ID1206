@@ -325,7 +325,7 @@ void green_cond_wait(green_cond_t *cond, green_mutex_t *mutex)
         {
             // Bad luck, suspend
             green_t *susp = running;
-            enqueue(&cond->queue, susp);
+            enqueue(&mutex->suspthreads, susp);
 
             green_t *next = dequeue(&ready_queue);
             running = next;
