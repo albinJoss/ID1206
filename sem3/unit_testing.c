@@ -91,7 +91,24 @@ void create_join(int tests)
         assert(number1 == number0 + 1);
     }
 }
-
+void max_amount()
+{
+    for(int i = 2; i < 10000; i *= 2)
+    {
+        printf("%d\n", i);
+        green_t threads[i];
+        int args[i];
+        for(int j = 0; j <=i; ++j)
+        {
+            args[j] = j;
+            green_create(&threads[j], test_cj, &args[j]);
+        }
+        for(int k = 0; k <= i; ++k)
+        {
+            green_join(&threads[k], NULL);
+        }
+    }
+}
 void mutex(int tests)
 {
     green_t gt0, gt1;
@@ -133,19 +150,20 @@ void cond(int tests)
 int main(int argc, char *argv[])
 {
     init();
-    int tests = argc > 1 ? atoi(argv[1]) : 10000;
-    printf("%d\t %d\n", argc, tests);
-    printf("Testing create and join\n");
-    //create_join(tests);
-    printf("Done\n");
+    // int tests = argc > 1 ? atoi(argv[1]) : 10000;
+    // printf("%d\t %d\n", argc, tests);
+    // printf("Testing create and join\n");
+    // //create_join(tests);
+    // printf("Done\n");
 
-    printf("Testing mutexes\n");
-    mutex(tests);
-    printf("Done\n");
+    // printf("Testing mutexes\n");
+    // mutex(tests);
+    // printf("Done\n");
 
-    printf("Testing conditional variables\n");
-    cond(tests);
-    printf("Done\n");
+    // printf("Testing conditional variables\n");
+    // cond(tests);
+    // printf("Done\n");
+    max_amount();
 
     return 0;
 }

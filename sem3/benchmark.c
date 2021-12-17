@@ -135,7 +135,7 @@ void testPthread(int *args)
     cpu_set_t cpuset;
 
     CPU_ZERO(&cpuset);
-    for (int i = 0; i < 1; ++i)        //Change this to change how many physical threads that pthreads can use.
+    for (int i = 0; i < 2; ++i)        //Change this to change how many physical threads that pthreads can use.
     {
         CPU_SET(i, &cpuset);
     }
@@ -168,9 +168,8 @@ int main()
     pthread_cond_init(&fullP, NULL);
     pthread_cond_init(&emptyP, NULL);
     pthread_mutex_init(&mutexP, NULL);
-    printf("#Benchmark, creating and producing/consuming with threads!\n#\n#\n");
     printf("#{#productions\ttimeGreen(ms)\ttimePthreads(ms)\n");
-    int numRuns = 50;
+    int numRuns = 75;
     for (int run = 1; run <= numRuns; run++)
     {
         
