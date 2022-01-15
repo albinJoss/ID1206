@@ -88,8 +88,9 @@ void green_thread()
 
     void *result = (*this->fun)(this->arg);
     // place waiting (joining) thread in ready queue
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     enqueue(&ready_queue, this->join);
-
+    sigprocmask(SIG_BLOCK, &block, NULL);
     // save result of execution
     this->retval = result;
 
@@ -133,6 +134,7 @@ int green_create(green_t *new, void *(*fun)(void *), void *arg)
 
 int green_yield()
 {
+    sigprocmask(SIG_BLOCK, &block, NULL);
     green_t *susp = running;
     // add susp to ready queue
     enqueue(&ready_queue, susp);
@@ -142,6 +144,7 @@ int green_yield()
     running = next;
     // swap context
     swapcontext(susp->context, next->context);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
